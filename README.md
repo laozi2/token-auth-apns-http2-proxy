@@ -1,5 +1,5 @@
 
-##apns-http2-proxy-with-go
+##token-auth-apns-http2-proxy
 
 *  A example of proxy to APNs with http2 and token-based authoriation
 *  基于token认证的APNs推送服务代理
