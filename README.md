@@ -2,7 +2,7 @@
 ##token-auth-apns-http2-proxy
 
 *  A example of proxy to APNs with http2 and token-based authoriation
-*  基于token认证的APNs推送服务代理
+*  项目描述:  做一个APN推送项目，目的是实现一个服务，从前端HTTP1.1代理到后端苹果的HTTP2 APNs， 由于没有找到完整可用的基于token认证的例子, 经过探索，在现有开源库的基础上做修改， 实现了该服务。 
 *  示例代码里的私钥，iss, kid需要替换成从苹果获取的相关信息
 
 ###github.com/dgrijalva/jwt-go 的改动
