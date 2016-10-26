@@ -4,7 +4,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	//"io"
 	"crypto/tls"
 	"encoding/json"
 	"log"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	apns "github.com/sideshow/apns2"
-	//"github.com/sideshow/apns2/certificate"
 )
 
 type App_conf struct {
@@ -91,15 +89,7 @@ func main() {
 
 		return
 	})
-
-	http.HandleFunc("/gen_token", func(w http.ResponseWriter, r *http.Request) {
-		tokenString, err := gen_token()
-		if err != nil {
-			http.Error(w, "error gen_token() : "+err.Error(), 500)
-		}
-		fmt.Fprint(w, tokenString)
-	})
-
+	
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
 		log.Fatal(err)
