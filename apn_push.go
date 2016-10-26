@@ -2,16 +2,18 @@
 package main
 
 import (
-	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	//"io"
+	"crypto/tls"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	apns "github.com/sideshow/apns2"
+	//"github.com/sideshow/apns2/certificate"
 )
 
 type App_conf struct {
@@ -47,6 +49,7 @@ func main() {
 			auth_token, err = gen_token()
 			if err != nil {
 				http.Error(w, "error gen_token() : "+err.Error(), 500)
+				return
 			}
 		}
 		//------------------
@@ -59,9 +62,9 @@ func main() {
 
 		res, err := client.Push(notification)
 
-		if err == nil {
-			rsp := Response{ApnsID: res.ApnsID, Reason: res.Reason, StatusCode: res.StatusCode, Timestamp: res.Timestamp}
-			json.NewEncoder(w).Encode(rsp)
+		if err != nil {
+			http.Error(w, "error Push() : "+err.Error(), 500)
+			log.Println("Push() Error:", err)
 			return
 		}
 
@@ -70,22 +73,31 @@ func main() {
 				auth_token, err = gen_token()
 				if err != nil {
 					http.Error(w, "error gen_token() : "+err.Error(), 500)
+					return
 				}
 				//retry
 				notification.Authorization = "bearer " + auth_token
-				res, err := client.Push(notification)
-
-				rsp := Response{ApnsID: res.ApnsID, Reason: res.Reason, StatusCode: res.StatusCode, Timestamp: res.Timestamp}
-				json.NewEncoder(w).Encode(rsp)
-
-				if err == nil {
+				res, err = client.Push(notification)
+				if err != nil {
+					http.Error(w, "error Push() : "+err.Error(), 500)
+					log.Println("Push() Error:", err)
 					return
 				}
 			}
 		}
-		log.Println("Push Error:", err)
-		//return
 
+		rsp := Response{ApnsID: res.ApnsID, Reason: res.Reason, StatusCode: res.StatusCode, Timestamp: res.Timestamp}
+		json.NewEncoder(w).Encode(rsp)
+
+		return
+	})
+
+	http.HandleFunc("/gen_token", func(w http.ResponseWriter, r *http.Request) {
+		tokenString, err := gen_token()
+		if err != nil {
+			http.Error(w, "error gen_token() : "+err.Error(), 500)
+		}
+		fmt.Fprint(w, tokenString)
 	})
 
 	err := http.ListenAndServe(":8081", nil)
@@ -102,23 +114,26 @@ MIGTAgEAMBMGByqGSM49AgEGCCqGSM49xCzCb63yoeRDYHajKuQpRT5J+lkCtEzX2Lr6xqpL+FmwT7hM
 -----END PRIVATE KEY-----`
 	iss := "ABCD123132"
 	kid := "FGT233DS90"
+	at := time.Now().Unix()
 
 	claims := &jwt.StandardClaims{
-		IssuedAt: time.Now().Unix(),
+		IssuedAt: at,
 		Issuer:   iss,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
 	token.Header["kid"] = kid
 	skey, err := jwt.ParsePKCS8PrivateKeyFromPEM([]byte(key))
 	if err != nil {
+		log.Println("ParsePKCS8PrivateKeyFromPEM() Error:", err)
 		return "", err
 	}
 	tokenString, err := token.SignedString(skey)
 	if err != nil {
+		log.Println("SignedString() Error:", err)
 		return "", err
 	}
-	log.Println("gen token: ", tokenString)
+	log.Println("gen token: ", tokenString, ". at:", at)
 	return tokenString, nil
 }
 
-// curl -i "127.0.0.1/apn_push?token=15323ce672ff91aeaaa68d44ef945840688f561e5568fb6bf2e0d0f78d937b6e&app_name=YouAPPNAME" -d '{"aps" : { "alert" : "Hello APNs" } }'
+// curl -i "127.0.0.1/apn_push?token=15323ce672ff91aeaaa68d44ef945840688f561e5568fb6bf2e0d0f78d937b6e&app_name=CamCard_IP_APNPRE&topic=" -d '{"aps" : { "alert" : "Hello Xiaohe" } }'
